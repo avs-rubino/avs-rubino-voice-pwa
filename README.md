@@ -31,7 +31,7 @@ Per prevenire allucinazioni o alterazioni errate dei dati in produzione generate
   - **Inserimento/Variazione (`action: "set"`)**: proposta di chiusura o cambio orario.
   - **Eliminazione (`action: "delete"`)**: proposta di cancellazione di tutte le eccezioni per una data e ripristino dell'orario standard.
 - La proposta **non** viene mai eseguita in modo autonomo dall'agente.
-- Compare a schermo il `ConfirmationModal` con badge e riepilogo dati dedicato (con esclusione pulita dei blocchi non pertinenti come gli orari in caso di cancellazione), richiedendo un click manuale esplicito (**"Conferma e Salva"** o **"Conferma ed Elimina"**).
+- Compare a schermo il `ConfirmationModal` con badge e riepilogo dati dedicato. Se la proposta manca di parametri chiave (es. orari parziali), si attiva un **Fallback Ibrido (Touch + Voice)**: la sintesi vocale avverte l'operatore e la GUI sblocca dei time-picker per completare l'input manualmente. Richiede sempre un click manuale esplicito (**"Conferma e Salva"** o **"Conferma ed Elimina"**) per sbloccare la transazione.
 - L'invocazione verso il backend avviene via:
   - `POST /api/admin/content/override` per inserimenti (con notifica vocale/visiva se un'eccezione preesistente viene sostituita automaticamente via `replacedPrevious: true`).
   - `DELETE /api/admin/content/override/by-date?clinicLocation=...&date=...` per le cancellazioni per data.
