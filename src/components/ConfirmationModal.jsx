@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { CheckCircle2, XCircle, AlertTriangle, Calendar, Clock, Volume2, ShieldCheck } from "lucide-react";
 
 export function ConfirmationModal({
@@ -10,6 +10,16 @@ export function ConfirmationModal({
   isApplying = false,
 }) {
   if (!isOpen || !proposal) return null;
+
+  const [localStartTime, setLocalStartTime] = useState(proposal?.startTime || "");
+  const [localEndTime, setLocalEndTime] = useState(proposal?.endTime || "");
+
+  useEffect(() => {
+    if (proposal) {
+      setLocalStartTime(proposal.startTime || "");
+      setLocalEndTime(proposal.endTime || "");
+    }
+  }, [proposal]);
 
   const formatDate = (dateStr) => {
     if (!dateStr) return "";
@@ -30,6 +40,7 @@ export function ConfirmationModal({
   const isDeleteAction = proposal?.action === "delete";
   const isClosed = !isDeleteAction && !!proposal.closed;
   const isDateRange = !isDeleteAction && proposal.dateTo && proposal.dateTo !== proposal.dateFrom;
+  const isIncomplete = !isDeleteAction && !isClosed && !localStartTime && !localEndTime;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in">
@@ -131,24 +142,67 @@ export function ConfirmationModal({
               <div className="p-2 rounded-xl bg-teal-500/10 text-teal-400 mt-0.5">
                 <Clock className="w-5 h-5" />
               </div>
-              <div className="space-y-0.5">
-                <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">Orari di Ricevimento</p>
-                <p className="text-sm font-semibold text-white">
-                  {proposal.startTime || "--:--"}
-                  {proposal.endTime ? ` - ${proposal.endTime}` : ""}
-                </p>
+              <div className="space-y-2 flex-1">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">
+                    Orari di Ricevimento
+                  </p>
+                  {isIncomplete && (
+                    <span className="text-[10px] font-semibold text-amber-400 uppercase tracking-wider">
+                      Orario Richiesto
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1">
+                    <label className="block text-[10px] text-slate-400 mb-1">Inizio</label>
+                    <input
+                      type="time"
+                      aria-label="Orario di inizio"
+                      value={localStartTime}
+                      onChange={(e) => setLocalStartTime(e.target.value)}
+                      placeholder="--:--"
+                      className={`w-full px-3 py-2 rounded-xl bg-slate-900 border text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all ${
+                        isIncomplete ? "border-amber-500/50 focus:border-amber-500" : "border-slate-700"
+                      }`}
+                    />
+                  </div>
+                  <span className="text-slate-500 pt-4 font-bold">-</span>
+                  <div className="flex-1">
+                    <label className="block text-[10px] text-slate-400 mb-1">Fine</label>
+                    <input
+                      type="time"
+                      aria-label="Orario di fine"
+                      value={localEndTime}
+                      onChange={(e) => setLocalEndTime(e.target.value)}
+                      placeholder="--:--"
+                      className={`w-full px-3 py-2 rounded-xl bg-slate-900 border text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all ${
+                        isIncomplete ? "border-amber-500/50 focus:border-amber-500" : "border-slate-700"
+                      }`}
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           )}
         </div>
 
         {/* Warning Alert */}
-        <div className="flex items-start gap-3 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs">
-          <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-          <span>
-            Nessuna modifica verrà applicata sul database senza il tuo click esplicito su <strong>Conferma</strong>.
-          </span>
-        </div>
+        {isIncomplete ? (
+          <div className="flex items-start gap-3 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs">
+            <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0 text-amber-400" />
+            <span>
+              <strong>Attenzione:</strong> Non è stato specificato alcun orario. Inserisci almeno un orario di apertura o chiusura a schermo (oppure annulla e usa la voce) per sbloccare la conferma.
+            </span>
+          </div>
+        ) : (
+          <div className="flex items-start gap-3 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs">
+            <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+            <span>
+              Nessuna modifica verrà applicata sul database senza il tuo click esplicito su <strong>Conferma</strong>.
+            </span>
+          </div>
+        )}
 
         {/* Action Buttons */}
         <div className="flex flex-col-reverse sm:flex-row gap-3 pt-2">
@@ -163,9 +217,15 @@ export function ConfirmationModal({
           </button>
           <button
             type="button"
-            onClick={onConfirm}
-            disabled={isApplying}
-            className={`flex-1 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl text-white font-semibold text-sm shadow-lg transition-all focus:outline-none focus:ring-2 disabled:opacity-50 ${
+            onClick={() =>
+              onConfirm({
+                ...proposal,
+                startTime: localStartTime.trim() || undefined,
+                endTime: localEndTime.trim() || undefined,
+              })
+            }
+            disabled={isApplying || isIncomplete}
+            className={`flex-1 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl text-white font-semibold text-sm shadow-lg transition-all focus:outline-none focus:ring-2 disabled:opacity-50 disabled:cursor-not-allowed ${
               isDeleteAction
                 ? "bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-400 active:from-rose-700 active:to-rose-600 shadow-rose-500/20 focus:ring-rose-400"
                 : "bg-gradient-to-r from-teal-600 to-teal-500 hover:from-teal-500 hover:to-teal-400 active:from-teal-700 active:to-teal-600 shadow-teal-500/20 focus:ring-teal-400"
@@ -189,4 +249,3 @@ export function ConfirmationModal({
     </div>
   );
 }
-

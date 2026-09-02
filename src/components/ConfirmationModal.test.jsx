@@ -75,7 +75,7 @@ describe('ConfirmationModal Component', () => {
     });
   });
 
-  describe('Action: SET (Regression Tests)', () => {
+  describe('Action: SET (Regression Tests & Input Handling)', () => {
     const setOpenProposal = {
       action: 'set',
       dateFrom: '2026-12-25',
@@ -92,7 +92,13 @@ describe('ConfirmationModal Component', () => {
       closed: true,
     };
 
-    it('renders set proposal with modified hours correctly', () => {
+    const setIncompleteProposal = {
+      action: 'set',
+      dateFrom: '2026-12-25',
+      closed: false,
+    };
+
+    it('renders set proposal with modified hours correctly with interactive inputs', () => {
       render(
         <ConfirmationModal
           isOpen={true}
@@ -106,8 +112,14 @@ describe('ConfirmationModal Component', () => {
       expect(screen.getByText('Variazione Orario')).toBeInTheDocument();
       expect(screen.getByText('Data Interessata')).toBeInTheDocument();
       expect(screen.getByText('Orari di Ricevimento')).toBeInTheDocument();
-      expect(screen.getByText('09:00 - 13:00')).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /Conferma e Salva/i })).toBeInTheDocument();
+      
+      const startInput = screen.getByLabelText(/Orario di inizio/i);
+      const endInput = screen.getByLabelText(/Orario di fine/i);
+      expect(startInput).toHaveValue('09:00');
+      expect(endInput).toHaveValue('13:00');
+      
+      const confirmBtn = screen.getByRole('button', { name: /Conferma e Salva/i });
+      expect(confirmBtn).toBeEnabled();
     });
 
     it('renders set proposal with extraordinary closure correctly', () => {
@@ -125,6 +137,38 @@ describe('ConfirmationModal Component', () => {
       expect(screen.getByText('Periodo Interessato')).toBeInTheDocument();
       expect(screen.queryByText(/Orari di Ricevimento/i)).not.toBeInTheDocument();
       expect(screen.getByRole('button', { name: /Conferma e Salva/i })).toBeInTheDocument();
+    });
+
+    it('handles incomplete proposal: disables confirm button, displays warning, and enables on manual input', () => {
+      const handleConfirm = vi.fn();
+      render(
+        <ConfirmationModal
+          isOpen={true}
+          proposal={setIncompleteProposal}
+          onConfirm={handleConfirm}
+          onCancel={vi.fn()}
+        />
+      );
+
+      expect(screen.getByText(/Orario Richiesto/i)).toBeInTheDocument();
+      expect(screen.getByText(/Non è stato specificato alcun orario/i)).toBeInTheDocument();
+      
+      const confirmBtn = screen.getByRole('button', { name: /Conferma e Salva/i });
+      expect(confirmBtn).toBeDisabled();
+
+      const startInput = screen.getByLabelText(/Orario di inizio/i);
+      fireEvent.change(startInput, { target: { value: '10:00' } });
+
+      expect(confirmBtn).toBeEnabled();
+
+      fireEvent.click(confirmBtn);
+      expect(handleConfirm).toHaveBeenCalledTimes(1);
+      expect(handleConfirm).toHaveBeenCalledWith(
+        expect.objectContaining({
+          dateFrom: '2026-12-25',
+          startTime: '10:00',
+        })
+      );
     });
   });
 });

@@ -120,16 +120,21 @@ export function VoiceAssistant() {
         proposal: response.actionProposal || null,
       };
 
-      setMessages((prev) => [...prev, assistantMsg]);
-
-      // 3. Play TTS for assistant's response
-      speak(assistantMsg.content);
-
-      // 4. Trigger Human-In-The-Loop confirmation if requested
+      // 3. Trigger Human-In-The-Loop confirmation and adjust TTS for incomplete proposals
       if (response.needsConfirm && response.actionProposal) {
-        setCurrentProposal(response.actionProposal);
+        const prop = response.actionProposal;
+        const isIncomplete = !prop.closed && prop.action !== "delete" && !prop.startTime && !prop.endTime;
+        if (isIncomplete) {
+          assistantMsg.content = "Ho preparato la modifica per la data indicata, ma manca l'orario. Puoi digitarlo a schermo, oppure cliccare 'Annulla' e ripetermi la frase inserendo gli orari.";
+        }
+        setCurrentProposal(prop);
         setIsConfirmModalOpen(true);
       }
+
+      setMessages((prev) => [...prev, assistantMsg]);
+
+      // 4. Play TTS for assistant's response
+      speak(assistantMsg.content);
     } catch (err) {
       console.error("Chat error:", err);
       setApiError(err.message || "Errore durante la comunicazione con il server.");
@@ -180,8 +185,9 @@ export function VoiceAssistant() {
     setApiError(null);
   };
 
-  const handleConfirmProposal = async () => {
-    if (!currentProposal) return;
+  const handleConfirmProposal = async (updatedProposal) => {
+    const activeProposal = updatedProposal || currentProposal;
+    if (!activeProposal) return;
     setIsApplyingOverride(true);
     setApiError(null);
 
@@ -192,13 +198,13 @@ export function VoiceAssistant() {
       const token = await getToken();
 
       // Flusso Cancellazione Eccezione
-      if (currentProposal.action === "delete") {
-        if (!currentProposal.date || !currentProposal.date.trim()) {
+      if (activeProposal.action === "delete") {
+        if (!activeProposal.date || !activeProposal.date.trim()) {
           throw new Error("Impossibile procedere: la data da eliminare non è stata specificata correttamente.");
         }
 
         const deleteResult = await deleteScheduleOverrideFromBackend(
-          currentProposal.date.trim(),
+          activeProposal.date.trim(),
           token,
           selectedStudio
         );
@@ -206,11 +212,11 @@ export function VoiceAssistant() {
         const deletedCount = deleteResult.deletedCount ?? 1;
         setSuccessNotice({
           message: `Eliminate con successo ${deletedCount} eccezione/i per la data specificata.`,
-          details: { date: currentProposal.date.trim(), action: "delete" },
+          details: { date: activeProposal.date.trim(), action: "delete" },
           studio: studioName,
         });
 
-        const confirmFeedbackMsg = `Ho eliminato le eccezioni orarie per il giorno ${currentProposal.date.trim()} per ${studioShort}, ripristinando l'orario standard.`;
+        const confirmFeedbackMsg = `Ho eliminato le eccezioni orarie per il giorno ${activeProposal.date.trim()} per ${studioShort}, ripristinando l'orario standard.`;
         const cacheNoticeMsg = "Nota: Se il sito web della clinica è stato visualizzato di recente, potrebbe essere necessario attendere fino a 3 minuti per vedere queste nuove variazioni online a causa della cache.";
 
         setRefreshExceptions((prev) => prev + 1);
@@ -236,7 +242,7 @@ export function VoiceAssistant() {
       }
 
       // Flusso Inserimento / Variazione Oraria (set)
-      const res = await applyScheduleOverrideToBackend(currentProposal, token, selectedStudio);
+      const res = await applyScheduleOverrideToBackend(activeProposal, token, selectedStudio);
 
       const replacedNotice = res?.replacedPrevious
         ? " (la precedente eccezione per questa data è stata rimossa automaticamente)"
@@ -244,7 +250,7 @@ export function VoiceAssistant() {
 
       setSuccessNotice({
         message: `Eccezione oraria confermata con successo!${replacedNotice}`,
-        details: currentProposal,
+        details: activeProposal,
         studio: studioName,
       });
 
@@ -576,10 +582,17 @@ export function VoiceAssistant() {
           if (currentProposal) {
             if (currentProposal.action === "delete") {
               speak(`Confermi l'eliminazione delle eccezioni per il giorno ${currentProposal.date}?`);
+            } else if (currentProposal.closed) {
+              const dateText = currentProposal.dateFrom;
+              speak(`Confermi la chiusura straordinaria per la data ${dateText}?`);
+            } else if (!currentProposal.startTime && !currentProposal.endTime) {
+              speak("Manca l'orario. Inseriscilo a schermo oppure annulla e ripeti a voce.");
             } else {
               const dateText = currentProposal.dateFrom;
-              const actionText = currentProposal.closed ? "la chiusura totale" : `l'orario ${currentProposal.startTime}`;
-              speak(`Confermi ${actionText} per la data ${dateText}?`);
+              const hoursText = currentProposal.startTime
+                ? `dalle ${currentProposal.startTime}${currentProposal.endTime ? ` alle ${currentProposal.endTime}` : ""}`
+                : `fino alle ${currentProposal.endTime}`;
+              speak(`Confermi l'orario ${hoursText} per la data ${dateText}?`);
             }
           }
         }}
