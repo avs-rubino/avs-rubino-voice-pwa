@@ -1,8 +1,8 @@
 # AVS Rubino - Voice Assistant PWA
 
-Applicazione Progressive Web App (PWA) sperimentale, pensata per il personale dell'Ambulatorio Veterinario Specialistico Rubino. Sfruttando interfacce vocali (Voice User Interface), permette di comunicare a voce con l'IA per segnalare variazioni repentine di orario (es. assenze, chiusure straordinarie, urgenze).
+Progressive Web App (PWA) progettata per il personale dell'Ambulatorio Veterinario Specialistico Rubino. Utilizza un'interfaccia utente vocale (VUI) basata su Web Speech API e intelligenza artificiale per consentire l'aggiornamento rapido degli orari clinici e delle variazioni straordinarie.
 
-## 🏛️ Ecosistema AVS Rubino
+## Ecosistema AVS Rubino
 
 Questo repository è uno dei 5 moduli dell'ecosistema digitale dell'Ambulatorio Veterinario Specialistico Rubino. Panoramica completa, architettura e flussi: **[github.com/avs-rubino](https://github.com/avs-rubino)**
 
@@ -18,60 +18,90 @@ Questo repository è uno dei 5 moduli dell'ecosistema digitale dell'Ambulatorio 
 
 ---
 
-## 🚀 Tecnologie Utilizzate
-- **Core:** React 19, Vite
-- **Styling:** Tailwind CSS v4
-- **Testing:** Vitest, React Testing Library, `@testing-library/jest-dom`, `jsdom`
-- **Interfaccia Vocale:** Web Speech API (Speech Recognition per la registrazione audio STT, Speech Synthesis per la risposta vocale TTS).
-- **PWA Setup:** `vite-plugin-pwa`, Service Workers.
+## Architettura e Tecnologie
 
-## 🛡️ Paradigma HITL (Human-in-the-Loop)
-Per prevenire allucinazioni o alterazioni errate dei dati in produzione generate dall'IA, questa applicazione adotta rigorosamente il pattern di sicurezza **Human-in-the-Loop**. 
-- L'Assistente Vocale elabora l'audio e struttura una `ActionProposal` (JSON) per:
-  - **Inserimento/Variazione (`action: "set"`)**: proposta di chiusura o cambio orario.
-  - **Eliminazione (`action: "delete"`)**: proposta di cancellazione di tutte le eccezioni per una data e ripristino dell'orario standard.
-- La proposta **non** viene mai eseguita in modo autonomo dall'agente.
-- Compare a schermo il `ConfirmationModal` con badge e riepilogo dati dedicato. Se la proposta manca di parametri chiave (es. orari parziali), si attiva un **Fallback Ibrido (Touch + Voice)**: la sintesi vocale avverte l'operatore e la GUI sblocca dei time-picker per completare l'input manualmente. Richiede sempre un click manuale esplicito (**"Conferma e Salva"** o **"Conferma ed Elimina"**) per sbloccare la transazione.
-- L'invocazione verso il backend avviene via:
-  - `POST /api/admin/content/override` per inserimenti (con notifica vocale/visiva se un'eccezione preesistente viene sostituita automaticamente via `replacedPrevious: true`).
-  - `DELETE /api/admin/content/override/by-date?clinicLocation=...&date=...` per le cancellazioni per data.
+- **Framework**: React 19 (SPA)
+- **Build Tool**: Vite 8 con `@vitejs/plugin-react`
+- **Styling**: Tailwind CSS v4 con `@tailwindcss/vite`
+- **PWA & Offline**: `vite-plugin-pwa`, Service Workers
+- **Interfaccia Vocale**: Web Speech API (`webkitSpeechRecognition` / `SpeechRecognition` e `SpeechSynthesis`)
+- **Autenticazione**: Firebase Auth con Custom Claims
+- **Linter**: Oxlint
+- **Testing**: Vitest, React Testing Library, jsdom
+- **Hosting**: Firebase Hosting
 
-## 📋 Prerequisiti e Compabilità
-- **Node.js:** v18.x o superiore.
-- L'utilizzo richiede un browser moderno con supporto nativo per la `Web Speech API` (es. Google Chrome, Safari, Microsoft Edge). L'accesso al microfono è protetto dalle `Permissions-Policy`.
+## Paradigma Human-in-the-Loop (HITL)
 
-## 🛠️ Avvio Locale e Test
+A garanzia dell'integrità dei dati operativi, l'applicazione impone il pattern **Human-in-the-Loop** su ogni azione proposta dall'intelligenza artificiale:
+1. L'operatore detta la variazione vocale.
+2. Il microservizio Voice API produce una proposta d'azione (`ActionProposal`) di tipo inserimento (`action: "set"`) o cancellazione (`action: "delete"`).
+3. L'agente non esegue alcuna scrittura autonoma su database.
+4. Viene visualizzato a schermo il `ConfirmationModal` con il riepilogo dettagliato dei parametri estratti. In caso di informazioni parziali, si attiva il fallback ibrido touch + voice per il completamento manuale.
+5. La mutazione viene inoltrata al backend solo a seguito del click esplicito dell'utente su **"Conferma e Salva"** o **"Conferma ed Elimina"**.
 
-1. Installa i pacchetti Node:
+## Prerequisiti
+
+- **Node.js**: >= 18.x
+- **npm**: >= 8.x
+- **Browser supportato**: Browser moderno conforme allo standard Web Speech API (Google Chrome, Microsoft Edge, Safari) e supporto microfono.
+
+## Setup Locale
+
+1. Installazione delle dipendenze:
    ```bash
    npm install
    ```
 
-2. Configura le variabili locali copiando il template:
+2. Configurazione delle variabili d'ambiente:
    ```bash
    cp .env.example .env
    ```
-   Questa applicazione interroga sia la *Voice API* (motore IA, porta 8080) sia il *Backend Node* (persistenza DB, porta 5000). Modifica gli URL nel `.env` in base alle tue istanze.
 
-3. Esegui la test suite automatizzata (Vitest):
-   ```bash
-   npm run test
-   ```
-   Esegue la suite di test unitari e di componenti, inclusi:
-   - `src/services/api.test.js`: validazione URL, query parameters `clinicLocation`/`date`, header `Authorization` e gestione errori HTTP.
-   - `src/components/ConfirmationModal.test.jsx`: verifica rendering dedicato per `delete` vs `set`, blocco orari ed eventi click HITL.
-
-4. Esegui il dev server:
+3. Avvio del server di sviluppo:
    ```bash
    npm run dev
    ```
-   Server PWA attivo di default su `http://localhost:5174`.
+   L'applicazione è disponibile all'indirizzo `http://localhost:5174`.
 
-## 🏗️ Build & Integrazione Continua
-Il processo di build compila sia l'interfaccia React che il Service Worker (manifest, caching offline, icone SVG maskable).
+## Variabili d'Ambiente
+
+| Variabile | Tipo | Descrizione | Default / Esempio | Richiesta |
+|---|---|---|---|---|
+| `VITE_FIREBASE_API_KEY` | String | API Key del progetto Firebase | - | Sì |
+| `VITE_FIREBASE_AUTH_DOMAIN` | String | Dominio di autenticazione Firebase | `project.firebaseapp.com` | Sì |
+| `VITE_FIREBASE_PROJECT_ID` | String | ID del progetto Google Cloud / Firebase | `vet-clinics-493413` | Sì |
+| `VITE_FIREBASE_STORAGE_BUCKET` | String | Bucket storage Firebase | `project.appspot.com` | Sì |
+| `VITE_FIREBASE_MESSAGING_SENDER_ID` | String | Sender ID Firebase Messaging | - | Sì |
+| `VITE_FIREBASE_APP_ID` | String | ID dell'applicazione web Firebase | - | Sì |
+| `VITE_VOICE_API_URL` | String | URL del microservizio NLU Voice API (Go) | `http://localhost:8080` | Sì |
+| `VITE_BACKEND_API_URL` | String | URL del backend REST centrale (Node.js) | `http://localhost:5000` | Sì |
+
+## Script Disponibili
+
+| Comando | Descrizione |
+|---|---|
+| `npm run dev` | Avvia il server di sviluppo locale |
+| `npm run build` | Compila l'applicazione e genera i file PWA/Service Worker nella cartella `dist/` |
+| `npm run lint` | Esegue l'analisi statica del codice con Oxlint |
+| `npm run test` | Esegue la suite di test unitari con Vitest |
+| `npm run preview` | Avvia una preview locale della build di produzione |
+
+## Testing
+
+La suite di test automatizzati utilizza **Vitest** e **React Testing Library**:
+
 ```bash
-npm run build
+npm run test
 ```
 
-Il progetto è integrato in GitHub Actions. Un push al ramo `main` farà partire l'azione che genera l'applicazione statica e la pubblicherà su **Firebase Hosting** (Target: `vet-clinics-voice-pwa`), assicurandosi di incollare i rigidi **Security Headers** descritti in `firebase.json` (`X-Frame-Options: DENY`, `HSTS`, `Permissions-Policy: microphone=(self)`).
+Aree coperte:
+- `src/services/api.test.js`: Validazione rotte API REST, composizione query parameter (`clinicLocation`, `date`), passaggio header `Authorization` e gestione codici di stato HTTP.
+- `src/components/ConfirmationModal.test.jsx`: Rendering dei flussi `set` e `delete`, visualizzazione campi orari, fallback per dati incompleti e interazioni click Human-in-the-Loop.
 
+## CI/CD e Deployment
+
+Il rilascio in produzione è gestito tramite GitHub Actions (`.github/workflows/deploy.yml`):
+- Ad ogni push sul branch `main`, il workflow compila la PWA e distribuisce gli artefatti su **Firebase Hosting** (Target: `vet-clinics-voice-pwa`).
+- `firebase.json` impone security headers specifici per l'ambiente browser, tra cui `Permissions-Policy: microphone=(self)` e `X-Frame-Options: DENY`.
+
+<!-- ecosystem: avs-rubino -->
