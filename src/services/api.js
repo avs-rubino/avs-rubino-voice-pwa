@@ -37,7 +37,7 @@ export async function sendChatMessage(message, history = [], token) {
       } else {
         errorDetail = `Errore API (HTTP ${response.status}): Risposta anomala`;
       }
-    } catch (e) {
+    } catch {
       console.error(`❌ [API] sendChatMessage fallito con status ${response.status} (nessun JSON valido)`);
     }
     throw new Error(errorDetail);
@@ -98,7 +98,7 @@ export async function applyScheduleOverrideToBackend(override, token, clinicLoca
       const errData = await response.json();
       console.error("❌ [API] applyScheduleOverrideToBackend fallito. Payload:", errData);
       if (errData.error) errorMsg = `Errore Backend (HTTP ${response.status}): ${errData.error}`;
-    } catch (e) {
+    } catch {
       console.error(`❌ [API] applyScheduleOverrideToBackend fallito con status ${response.status} (nessun JSON valido)`);
     }
     throw new Error(errorMsg);
@@ -140,7 +140,7 @@ export async function deleteScheduleOverrideFromBackend(date, token, clinicLocat
       const errData = await response.json();
       console.error("❌ [API] deleteScheduleOverrideFromBackend fallito. Payload:", errData);
       if (errData.error) errorMsg = `Errore Backend (HTTP ${response.status}): ${errData.error}`;
-    } catch (e) {
+    } catch {
       console.error(`❌ [API] deleteScheduleOverrideFromBackend fallito con status ${response.status} (nessun JSON valido)`);
     }
     throw new Error(errorMsg);
@@ -162,7 +162,7 @@ export async function fetchPublicContent() {
       const errData = await response.json();
       console.error("❌ [API] fetchPublicContent fallito. Payload:", errData);
       if (errData.error) errorMsg = `Errore Backend (HTTP ${response.status}): ${errData.error}`;
-    } catch (e) {
+    } catch {
       console.error(`❌ [API] fetchPublicContent fallito con status ${response.status} (nessun JSON valido)`);
     }
     throw new Error(errorMsg);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { CheckCircle2, XCircle, AlertTriangle, Calendar, Clock, Volume2, ShieldCheck } from "lucide-react";
 
 export function ConfirmationModal({
@@ -9,17 +9,19 @@ export function ConfirmationModal({
   onReplayVoice,
   isApplying = false,
 }) {
-  if (!isOpen || !proposal) return null;
-
   const [localStartTime, setLocalStartTime] = useState(proposal?.startTime || "");
   const [localEndTime, setLocalEndTime] = useState(proposal?.endTime || "");
+  const [prevProposal, setPrevProposal] = useState(proposal);
 
-  useEffect(() => {
+  if (proposal !== prevProposal) {
+    setPrevProposal(proposal);
     if (proposal) {
       setLocalStartTime(proposal.startTime || "");
       setLocalEndTime(proposal.endTime || "");
     }
-  }, [proposal]);
+  }
+
+  if (!isOpen || !proposal) return null;
 
   const formatDate = (dateStr) => {
     if (!dateStr) return "";

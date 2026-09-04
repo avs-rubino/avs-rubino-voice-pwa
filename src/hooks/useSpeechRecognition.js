@@ -4,23 +4,23 @@ export function useSpeechRecognition({ onResult, onEnd, onError, lang = "it-IT" 
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [interimTranscript, setInterimTranscript] = useState("");
-  const [error, setError] = useState(null);
+  const isSupported = typeof window !== "undefined" && ("SpeechRecognition" in window || "webkitSpeechRecognition" in window);
+  const [error, setError] = useState(isSupported ? null : "Il browser non supporta il riconoscimento vocale Web Speech API.");
 
   const recognitionRef = useRef(null);
-  const isSupported = typeof window !== "undefined" && ("SpeechRecognition" in window || "webkitSpeechRecognition" in window);
 
   const onResultRef = useRef(onResult);
-  onResultRef.current = onResult;
-
   const onEndRef = useRef(onEnd);
-  onEndRef.current = onEnd;
-
   const onErrorRef = useRef(onError);
-  onErrorRef.current = onError;
+
+  useEffect(() => {
+    onResultRef.current = onResult;
+    onEndRef.current = onEnd;
+    onErrorRef.current = onError;
+  }, [onResult, onEnd, onError]);
 
   useEffect(() => {
     if (!isSupported) {
-      setError("Il browser non supporta il riconoscimento vocale Web Speech API.");
       return;
     }
 

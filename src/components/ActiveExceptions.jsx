@@ -45,13 +45,12 @@ export function ActiveExceptions({ refreshTrigger = 0, selectedStudio = 'orariFo
   const [error, setError] = useState(null);
   const [showInfoBanner, setShowInfoBanner] = useState(false);
   const [activeTab, setActiveTab] = useState(selectedStudio);
+  const [prevSelectedStudio, setPrevSelectedStudio] = useState(selectedStudio);
 
-  // Sync activeTab if selectedStudio changes from parent
-  useEffect(() => {
-    if (selectedStudio) {
-      setActiveTab(selectedStudio);
-    }
-  }, [selectedStudio]);
+  if (selectedStudio !== prevSelectedStudio) {
+    setActiveTab(selectedStudio);
+    setPrevSelectedStudio(selectedStudio);
+  }
 
   const loadExceptions = useCallback(async () => {
     setIsLoading(true);
@@ -68,6 +67,7 @@ export function ActiveExceptions({ refreshTrigger = 0, selectedStudio = 'orariFo
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react/set-state-in-effect
     loadExceptions();
   }, [loadExceptions, refreshTrigger]);
 

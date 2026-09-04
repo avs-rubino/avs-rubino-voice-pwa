@@ -27,6 +27,12 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
+      - name: Lint Code
+        run: npm run lint
+
+      - name: Run Tests
+        run: npm run test
+
       - name: Create .env from Secrets
         run: |
           echo "VITE_VOICE_API_URL=${{ secrets.VITE_VOICE_API_URL }}" >> .env
