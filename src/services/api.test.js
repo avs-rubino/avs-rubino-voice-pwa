@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { deleteScheduleOverrideFromBackend, fetchPublicContent } from './api';
+import { applyScheduleOverrideToBackend, deleteScheduleOverrideFromBackend, fetchPublicContent } from './api';
 
 describe('deleteScheduleOverrideFromBackend', () => {
   const originalFetch = global.fetch;
@@ -123,6 +123,93 @@ describe('fetchPublicContent', () => {
     });
 
     await expect(fetchPublicContent()).rejects.toThrow("Contenuto 'general_info' non trovato nella risposta del backend.");
+  });
+});
+
+describe('applyScheduleOverrideToBackend', () => {
+  const originalFetch = global.fetch;
+
+  beforeEach(() => {
+    global.fetch = vi.fn();
+  });
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+    vi.restoreAllMocks();
+  });
+
+  it('throws error if token is missing', async () => {
+    await expect(applyScheduleOverrideToBackend({ dateFrom: '2026-09-18' }, ''))
+      .rejects.toThrow('Authentication token is required');
+  });
+
+  it('omits startTime and endTime when override.closed is true', async () => {
+    const mockResponse = { success: true, message: 'Eccezione oraria salvata atomicamente' };
+    global.fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockResponse,
+    });
+
+    const override = {
+      closed: true,
+      dateFrom: '2026-09-18',
+      dateTo: '2026-09-18',
+      startTime: '',
+      endTime: '',
+    };
+
+    const res = await applyScheduleOverrideToBackend(override, 'test-token', 'orariFormia');
+
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    const [url, options] = global.fetch.mock.calls[0];
+    expect(url).toContain('/api/admin/content/override');
+    expect(options.method).toBe('POST');
+    expect(options.headers).toEqual({
+      'Content-Type': 'application/json',
+      Authorization: 'Bearer test-token',
+    });
+
+    const body = JSON.parse(options.body);
+    expect(body.clinicLocation).toBe('orariFormia');
+    expect(body.override.closed).toBe(true);
+    expect(body.override.dateFrom).toBe('2026-09-18');
+    expect(body.override.startTime).toBeUndefined();
+    expect(body.override.endTime).toBeUndefined();
+    expect(res).toEqual(mockResponse);
+  });
+
+  it('includes startTime and endTime when override is open', async () => {
+    const mockResponse = { success: true, message: 'Eccezione oraria salvata atomicamente' };
+    global.fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockResponse,
+    });
+
+    const override = {
+      closed: false,
+      dateFrom: '2026-09-18',
+      dateTo: '2026-09-18',
+      startTime: '09:00',
+      endTime: '13:00',
+    };
+
+    await applyScheduleOverrideToBackend(override, 'test-token', 'orariFormia');
+
+    const body = JSON.parse(global.fetch.mock.calls[0][1].body);
+    expect(body.override.closed).toBe(false);
+    expect(body.override.startTime).toBe('09:00');
+    expect(body.override.endTime).toBe('13:00');
+  });
+
+  it('handles backend error responses correctly', async () => {
+    global.fetch.mockResolvedValueOnce({
+      ok: false,
+      status: 400,
+      json: async () => ({ error: 'Dati override non validi' }),
+    });
+
+    await expect(applyScheduleOverrideToBackend({ closed: true, dateFrom: '2026-09-18' }, 'test-token'))
+      .rejects.toThrow('Errore Backend (HTTP 400): Dati override non validi');
   });
 });
 

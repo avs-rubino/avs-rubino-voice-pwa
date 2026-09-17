@@ -76,8 +76,12 @@ export async function applyScheduleOverrideToBackend(override, token, clinicLoca
     closed: !!override.closed,
     dateFrom: override.dateFrom,
     dateTo: override.dateTo || override.dateFrom,
-    startTime: override.startTime || "",
-    endTime: override.endTime || "",
+    ...(override.closed
+      ? {}
+      : {
+          ...(override.startTime ? { startTime: override.startTime } : {}),
+          ...(override.endTime ? { endTime: override.endTime } : {}),
+        }),
   };
 
   const response = await fetch(`${BACKEND_API_BASE_URL}/api/admin/content/override`, {

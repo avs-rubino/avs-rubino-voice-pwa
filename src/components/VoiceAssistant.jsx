@@ -300,6 +300,8 @@ export function VoiceAssistant() {
 
   const handleCancelProposal = () => {
     setIsConfirmModalOpen(false);
+    setCurrentProposal(null);
+    setApiError(null);
     const cancelMsg = "Nessun problema, ho annullato la modifica. Dimmi come preferisci variare l'orario.";
     setMessages((prev) => [
       ...prev,
@@ -597,6 +599,7 @@ export function VoiceAssistant() {
           }
         }}
         isApplying={isApplyingOverride}
+        errorMessage={apiError}
       />
 
     </div>

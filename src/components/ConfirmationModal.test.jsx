@@ -139,6 +139,41 @@ describe('ConfirmationModal Component', () => {
       expect(screen.getByRole('button', { name: /Conferma e Salva/i })).toBeInTheDocument();
     });
 
+    it('omits startTime and endTime when confirming a closed proposal', () => {
+      const handleConfirm = vi.fn();
+      render(
+        <ConfirmationModal
+          isOpen={true}
+          proposal={setClosedProposal}
+          onConfirm={handleConfirm}
+          onCancel={vi.fn()}
+        />
+      );
+
+      const confirmBtn = screen.getByRole('button', { name: /Conferma e Salva/i });
+      fireEvent.click(confirmBtn);
+
+      expect(handleConfirm).toHaveBeenCalledTimes(1);
+      const callArg = handleConfirm.mock.calls[0][0];
+      expect(callArg.closed).toBe(true);
+      expect(callArg.startTime).toBeUndefined();
+      expect(callArg.endTime).toBeUndefined();
+    });
+
+    it('renders error alert banner when errorMessage prop is provided', () => {
+      render(
+        <ConfirmationModal
+          isOpen={true}
+          proposal={setClosedProposal}
+          onConfirm={vi.fn()}
+          onCancel={vi.fn()}
+          errorMessage="Errore durante l'applicazione dell'orario"
+        />
+      );
+
+      expect(screen.getByText(/Errore durante l'applicazione dell'orario/i)).toBeInTheDocument();
+    });
+
     it('handles incomplete proposal: disables confirm button, displays warning, and enables on manual input', () => {
       const handleConfirm = vi.fn();
       render(

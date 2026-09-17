@@ -8,6 +8,7 @@ export function ConfirmationModal({
   onCancel,
   onReplayVoice,
   isApplying = false,
+  errorMessage = null,
 }) {
   const [localStartTime, setLocalStartTime] = useState(proposal?.startTime || "");
   const [localEndTime, setLocalEndTime] = useState(proposal?.endTime || "");
@@ -189,6 +190,16 @@ export function ConfirmationModal({
           )}
         </div>
 
+        {/* Error Alert if API call failed */}
+        {errorMessage && (
+          <div className="flex items-start gap-3 p-3 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs animate-fade-in">
+            <XCircle className="w-4 h-4 mt-0.5 flex-shrink-0 text-rose-400" />
+            <span>
+              <strong>Errore:</strong> {errorMessage}
+            </span>
+          </div>
+        )}
+
         {/* Warning Alert */}
         {isIncomplete ? (
           <div className="flex items-start gap-3 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs">
@@ -222,8 +233,12 @@ export function ConfirmationModal({
             onClick={() =>
               onConfirm({
                 ...proposal,
-                startTime: localStartTime.trim() || undefined,
-                endTime: localEndTime.trim() || undefined,
+                ...(proposal?.closed
+                  ? {}
+                  : {
+                      startTime: localStartTime.trim() || undefined,
+                      endTime: localEndTime.trim() || undefined,
+                    }),
               })
             }
             disabled={isApplying || isIncomplete}
