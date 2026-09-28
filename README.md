@@ -30,6 +30,10 @@ Questo repository è uno dei 5 moduli dell'ecosistema digitale dell'Ambulatorio 
 - **Testing**: Vitest, React Testing Library, jsdom
 - **Hosting**: Firebase Hosting
 
+## Generazione Avvisi Social
+
+Dopo la conferma di una nuova variazione oraria, la PWA genera interamente lato client (tramite Canvas API) un'immagine ottimizzata in formato 9:16 con il testo dell'avviso per il pubblico. L'immagine può essere scaricata o condivisa direttamente sui social (es. Instagram Stories, WhatsApp) tramite le Web Share API native del dispositivo.
+
 ## Paradigma Human-in-the-Loop (HITL)
 
 A garanzia dell'integrità dei dati operativi, l'applicazione impone il pattern **Human-in-the-Loop** su ogni azione proposta dall'intelligenza artificiale:

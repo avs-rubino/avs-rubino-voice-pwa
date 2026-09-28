@@ -7,8 +7,10 @@ import {
   applyScheduleOverrideToBackend,
   deleteScheduleOverrideFromBackend,
 } from "../services/api";
+import { buildAvvisoFromResponse } from "../services/avvisoImage";
 import { ConfirmationModal } from "./ConfirmationModal";
 import { ActiveExceptions } from "./ActiveExceptions";
+import { ShareAvvisoButton } from "./ShareAvvisoButton";
 import {
   Mic,
   MicOff,
@@ -40,6 +42,8 @@ export function VoiceAssistant() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [apiError, setApiError] = useState(null);
   const [successNotice, setSuccessNotice] = useState(null);
+  const [avviso, setAvviso] = useState(null);
+  const [avvisoError, setAvvisoError] = useState(null);
 
   // Clinic location selector (matching clinic_content keys)
   const [selectedStudio, setSelectedStudio] = useState("orariFormia");
@@ -81,6 +85,8 @@ export function VoiceAssistant() {
 
     setApiError(null);
     setSuccessNotice(null);
+    setAvviso(null);
+    setAvvisoError(null);
     stopSpeaking();
 
     const timestamp = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -183,6 +189,8 @@ export function VoiceAssistant() {
     setIsConfirmModalOpen(false);
     setSuccessNotice(null);
     setApiError(null);
+    setAvviso(null);
+    setAvvisoError(null);
   };
 
   const handleConfirmProposal = async (updatedProposal) => {
@@ -199,6 +207,8 @@ export function VoiceAssistant() {
 
       // Flusso Cancellazione Eccezione
       if (activeProposal.action === "delete") {
+        setAvviso(null);
+        setAvvisoError(null);
         if (!activeProposal.date || !activeProposal.date.trim()) {
           throw new Error("Impossibile procedere: la data da eliminare non è stata specificata correttamente.");
         }
@@ -278,6 +288,15 @@ export function VoiceAssistant() {
       speak(confirmFeedbackMsg);
       setIsConfirmModalOpen(false);
       setCurrentProposal(null);
+
+      // Generazione avviso client-side (asincrona, non blocca la voce né la chiusura modale)
+      try {
+        const generated = await buildAvvisoFromResponse(res, activeProposal, selectedStudio);
+        if (generated) setAvviso(generated);
+      } catch (imgErr) {
+        console.warn("Generazione avviso immagine non riuscita:", imgErr);
+        setAvvisoError("Non è stato possibile generare l'immagine dell'avviso. L'eccezione oraria è stata salvata correttamente.");
+      }
     } catch (err) {
       console.error("Errore durante l'operazione sull'eccezione oraria:", err);
       const errorDetail = err?.message || "Errore di connessione o operazione fallita.";
@@ -302,6 +321,8 @@ export function VoiceAssistant() {
     setIsConfirmModalOpen(false);
     setCurrentProposal(null);
     setApiError(null);
+    setAvviso(null);
+    setAvvisoError(null);
     const cancelMsg = "Nessun problema, ho annullato la modifica. Dimmi come preferisci variare l'orario.";
     setMessages((prev) => [
       ...prev,
@@ -417,6 +438,14 @@ export function VoiceAssistant() {
           </div>
         )}
 
+        {/* Avviso Generation Warning Banner (Non-blocking) */}
+        {avvisoError && (
+          <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs flex items-start gap-2.5 animate-fade-in">
+            <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+            <span>{avvisoError}</span>
+          </div>
+        )}
+
         {/* API / Speech Warning Banner */}
         {(apiError || speechError) && (
           <div className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-start gap-2.5 animate-fade-in">
@@ -510,6 +539,17 @@ export function VoiceAssistant() {
 
         <div ref={chatEndRef} />
       </main>
+
+      {/* Sticky Avviso Share Button Dock (§1.7 & Task 8) */}
+      {avviso && (
+        <div className="px-4 py-2.5 bg-slate-900/95 backdrop-blur-md border-t border-teal-500/30 flex justify-center flex-shrink-0 z-20 animate-fade-in shadow-lg">
+          <ShareAvvisoButton
+            blob={avviso.blob}
+            filename={avviso.filename}
+            shareText={avviso.shareText}
+          />
+        </div>
+      )}
 
       {/* Central Push-To-Talk and Input Dock */}
       <footer className="p-4 bg-slate-900/95 backdrop-blur-xl border-t border-slate-800 space-y-3 flex-shrink-0">

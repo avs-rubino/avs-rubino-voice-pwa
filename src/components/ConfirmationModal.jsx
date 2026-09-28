@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { CheckCircle2, XCircle, AlertTriangle, Calendar, Clock, Volume2, ShieldCheck } from "lucide-react";
+import { formatItalianDate } from "../utils/date";
 
 export function ConfirmationModal({
   isOpen,
@@ -23,22 +24,6 @@ export function ConfirmationModal({
   }
 
   if (!isOpen || !proposal) return null;
-
-  const formatDate = (dateStr) => {
-    if (!dateStr) return "";
-    try {
-      const [y, m, d] = dateStr.split("-").map(Number);
-      const date = new Date(y, m - 1, d);
-      return date.toLocaleDateString("it-IT", {
-        weekday: "long",
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-      });
-    } catch {
-      return dateStr;
-    }
-  };
 
   const isDeleteAction = proposal?.action === "delete";
   const isClosed = !isDeleteAction && !!proposal.closed;
@@ -124,11 +109,11 @@ export function ConfirmationModal({
                 {isDeleteAction ? "Data da Eliminare" : isDateRange ? "Periodo Interessato" : "Data Interessata"}
               </p>
               <p className="text-sm font-semibold text-white capitalize">
-                {formatDate(isDeleteAction ? proposal.date : proposal.dateFrom)}
+                {formatItalianDate(isDeleteAction ? proposal.date : proposal.dateFrom)}
               </p>
               {!isDeleteAction && isDateRange && (
                 <p className="text-xs text-slate-300">
-                  Fino a: <span className="font-semibold capitalize">{formatDate(proposal.dateTo)}</span>
+                  Fino a: <span className="font-semibold capitalize">{formatItalianDate(proposal.dateTo)}</span>
                 </p>
               )}
               {isDeleteAction && (
