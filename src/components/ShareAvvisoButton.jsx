@@ -100,32 +100,29 @@ export function ShareAvvisoButton({ blob, filename, shareText }) {
         </div>
       </div>
 
-      {/* Visualizzazione modale a tutto schermo */}
+      {/* Visualizzazione modale a tutto schermo (Scrollable per evitare schiacciamenti) */}
       {isFullscreen && previewUrl && (
-        <div className="fixed inset-0 z-[100] flex flex-col bg-slate-950/95 backdrop-blur-md animate-fade-in">
-          {/* Top Bar with Close Button */}
-          <div className="flex justify-end p-4 sm:p-6 shrink-0">
-            <button
-              onClick={() => setIsFullscreen(false)}
-              aria-label="Chiudi anteprima"
-              className="p-3 rounded-full bg-slate-800/80 text-slate-300 hover:text-white hover:bg-slate-700 transition-colors shadow-lg"
-            >
-              <X className="w-6 h-6" />
-            </button>
-          </div>
+        <div className="fixed inset-0 z-[100] bg-slate-950/95 backdrop-blur-md overflow-y-auto animate-fade-in">
+          {/* Pulsante di chiusura Fixed */}
+          <button
+            onClick={() => setIsFullscreen(false)}
+            aria-label="Chiudi anteprima"
+            className="fixed top-4 right-4 sm:top-6 sm:right-6 p-3 rounded-full bg-slate-800/80 text-slate-300 hover:text-white hover:bg-slate-700 transition-colors shadow-lg z-[110]"
+          >
+            <X className="w-6 h-6" />
+          </button>
           
-          {/* Image Container taking all available middle space */}
-          <div className="flex-1 min-h-0 flex items-center justify-center px-4">
+          {/* Contenuto Scrollabile centrato */}
+          <div className="min-h-full flex flex-col items-center justify-center p-4 sm:p-6 py-16 sm:py-20">
+            {/* Immagine con larghezza basata sullo schermo, altezza automatica */}
             <img
               src={previewUrl}
               alt="Anteprima a grandezza naturale"
-              className="max-w-full max-h-full object-contain rounded-2xl shadow-2xl border border-slate-700/50"
+              className="w-full max-w-[280px] sm:max-w-sm md:max-w-md h-auto object-contain rounded-2xl shadow-2xl border border-slate-700/50 mb-8"
             />
-          </div>
-          
-          {/* Bottom Bar with Share Button */}
-          <div className="p-4 pb-8 sm:pb-12 shrink-0 flex flex-col items-center w-full">
-            <div className="flex flex-col items-center gap-2 w-full max-w-sm">
+            
+            {/* Contenitore Pulsante Condivisione Modal */}
+            <div className="flex flex-col items-center gap-2 w-full max-w-sm shrink-0">
               <button
                 type="button"
                 onClick={handleShare}
