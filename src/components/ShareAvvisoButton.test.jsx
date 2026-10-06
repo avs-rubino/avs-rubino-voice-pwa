@@ -122,4 +122,41 @@ describe("ShareAvvisoButton Component", () => {
     expect(btn).toBeInTheDocument();
     expect(btn).toHaveAttribute("aria-busy", "false");
   });
+
+  it("30: render con blob valido -> visualizza l'anteprima dell'immagine con alt e src corretti", () => {
+    render(
+      <ShareAvvisoButton
+        blob={dummyBlob}
+        filename={dummyFilename}
+        shareText={dummyText}
+      />
+    );
+
+    const img = screen.getByAltText(/anteprima avviso/i);
+    expect(img).toBeInTheDocument();
+    expect(img).toHaveAttribute("src", "blob:mock-url");
+  });
+
+  it("31: ciclo di vita blob -> cleanup di URL.revokeObjectURL allo smontaggio e nessun tag img se blob assente", () => {
+    const { unmount } = render(
+      <ShareAvvisoButton
+        blob={dummyBlob}
+        filename={dummyFilename}
+        shareText={dummyText}
+      />
+    );
+
+    expect(screen.getByAltText(/anteprima avviso/i)).toBeInTheDocument();
+    unmount();
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:mock-url");
+
+    render(
+      <ShareAvvisoButton
+        blob={null}
+        filename={dummyFilename}
+        shareText={dummyText}
+      />
+    );
+    expect(screen.queryByAltText(/anteprima avviso/i)).not.toBeInTheDocument();
+  });
 });
